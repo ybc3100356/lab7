@@ -1,0 +1,6 @@
+*.pdf
+*.doc
+.vs
+.vscode
+*.exe
+socket/
