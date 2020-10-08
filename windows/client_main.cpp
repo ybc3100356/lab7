@@ -21,9 +21,8 @@ int main()
     connect(servSock,(SOCKADDR*)&sockAddr, sizeof(SOCKADDR));
 
     //接受服务器传回数据
-    char szBuffer[5]={0};
-    int ret = recv(servSock, szBuffer, 5, NULL);
-    printf("%d\n", ret);
+    char szBuffer[MAXBYTE]={0};
+    recv(servSock, szBuffer, MAXBYTE, NULL);
 
     //输出收到的数据
     printf("Message from server: %s\n",szBuffer);
