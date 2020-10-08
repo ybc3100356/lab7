@@ -4,6 +4,7 @@ document/
 
 #vs
 x64/
+Debug/
 *.sln
 .vs
 *.vcxproj
