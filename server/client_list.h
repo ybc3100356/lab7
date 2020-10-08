@@ -1,7 +1,8 @@
-#ifndef LAB7_CLIENT_H
-#define LAB7_CLIENT_H
+#ifndef LAB7_CLIENT_LIST_H
+#define LAB7_CLIENT_LIST_H
 
 #include <WinSock2.h>
+#include <string>
 
 class ClientList
 {
@@ -31,6 +32,8 @@ public:
 
     static int addClient(SOCKET clntSock, SOCKADDR clntAddr);
     static int removeClient(size_t index);
+    static int sendMessage(size_t index, const char* message, size_t len);
+    static std::string recvRequest(size_t index);
 };
 
 #endif

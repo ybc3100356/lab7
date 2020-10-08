@@ -1,6 +1,10 @@
-*.pdf
-*.doc
-.vs
+document/
 .vscode
 *.exe
-socket/
+
+#vs
+x64/
+*.sln
+.vs
+*.vcxproj
+*.vcxproj.*
