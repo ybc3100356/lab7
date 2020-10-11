@@ -1,2 +1,2 @@
 # lab7
-lab 7 for computer network
+计算机网络课程实验：基于Socket接口实现自定义协议通信
