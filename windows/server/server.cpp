@@ -1,5 +1,6 @@
 #include "server.h"
 #include "client_list.h"
+#include "../protocol/my_protocol.hpp"
 #pragma warning(disable : 4996)
 
 int Server::serve()
@@ -38,11 +39,10 @@ int Server::serve()
             PMYDATA pData = new MYDATA(clntSock, (size_t)clientIndex);
             hThreadArray[clientIndex] = CreateThread(NULL, 0, clientFunc, pData, 0, NULL);
         }
-
         else
         {
             const char* welcomeStr = "Sorry, there are too many users now! please connect later.";
-            ClientList::sendMessage(clientIndex, welcomeStr, strlen(welcomeStr) + sizeof(char));
+            MyProtocol::sendMessage(clntSock, welcomeStr, strlen(welcomeStr) + sizeof(char));
             closesocket(clntSock);
         }
     }
@@ -63,10 +63,10 @@ DWORD WINAPI clientFunc(LPVOID lpParameter)
 
     //向客户端发送数据
     const char* welcomeStr = "Hello World!";
-    send(clntSock, welcomeStr, strlen(welcomeStr) + sizeof(char), NULL);
+    MyProtocol::sendMessage(clntSock, welcomeStr, strlen(welcomeStr) + sizeof(char));
 
     //接受客户端数据
-    std::string request = ClientList::recvRequest(pData->index);
+    std::string request = MyProtocol::recvMessage(clntSock);
 
     //输出收到的数据
     printf("Message from client: %s\n", request.c_str());

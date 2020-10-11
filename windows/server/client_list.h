@@ -6,7 +6,6 @@
 
 class ClientList
 {
-public:
     class Client
     {
         SOCKET clntSock;
@@ -14,26 +13,28 @@ public:
         SOCKADDR clntAddr;
 
     public:
-        SOCKET &getSock() { return clntSock; }
+        SOCKET getSock() { return clntSock; }
         void setSock(SOCKET _clntSock) { clntSock = _clntSock; }
 
-        SOCKADDR &getAddr() { return clntAddr; }
+        SOCKADDR& getAddr() { return clntAddr; }
         void setAddr(SOCKADDR _clntAddr) { clntAddr = _clntAddr; }
 
         bool isConnected() { return connected; }
         void setConnected(bool _connected) { connected = _connected; }
         Client() : connected(false) {}
-        Client(SOCKET _clntSock, SOCKADDR _clntAddr) : clntSock(_clntSock), clntAddr(_clntAddr){};
-        ~Client(){};
+        Client(SOCKET _clntSock, SOCKADDR _clntAddr) : clntSock(_clntSock), clntAddr(_clntAddr), connected(false) {};
+        ~Client() {};
     };
 
+public:
     static const size_t MAXUSERNUM = 2;
+private:
     static Client clientPool[MAXUSERNUM];
 
+public:
     static int addClient(SOCKET clntSock, SOCKADDR clntAddr);
     static int removeClient(size_t index);
-    static int sendMessage(size_t index, const char* message, size_t len);
-    static std::string recvRequest(size_t index);
+
 };
 
 #endif

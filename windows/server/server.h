@@ -1,5 +1,5 @@
-#ifndef LAB7_SERVER_H_
-#define LAB7_SERVER_H_
+#ifndef LAB7_SERVER_H
+#define LAB7_SERVER_H
 
 #include <WinSock2.h>
 #include <Windows.h>
