@@ -7,9 +7,9 @@ int main()
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-    Server *server = new Server();
+    Server* server = new Server("S E R V E R");
     int ret = server->serve();
-    
+
     delete server;
     WSACleanup();
     return ret;

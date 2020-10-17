@@ -3,10 +3,18 @@
 
 #include <stdlib.h>
 
+void AtExitFunc()
+{
+    if (Client::instance != nullptr)
+        Client::instance->~Client();
+}
+
 int main()
 {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+    atexit(AtExitFunc);
 
     Client client;
     int ret = client.start();

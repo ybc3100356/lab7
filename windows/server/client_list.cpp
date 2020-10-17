@@ -28,3 +28,22 @@ int ClientList::addClient(SOCKET clntSock, SOCKADDR clntAddr)
     }
     return -1;
 }
+
+std::string ClientList::getClientList()
+{
+    std::string clientListStr;
+    for (size_t i = 0; i < MAXUSERNUM; i++)
+    {
+        if (clientPool[i].isConnected())
+        {
+            //±àºÅ¡¢IPµØÖ·¡¢¶Ë¿Ú
+            sockaddr_in* addr_in = (sockaddr_in*)(&clientPool[i].getAddr());
+            std::string number = std::to_string(i);
+            std::string addr = inet_ntoa(addr_in->sin_addr);
+            std::string port = std::to_string(addr_in->sin_port);
+
+            clientListStr += "number: " + number + ", addr: " + addr + ", port:" + port + "\n";
+        }
+    }
+    return clientListStr;
+}

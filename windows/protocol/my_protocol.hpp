@@ -1,9 +1,12 @@
 #ifndef LAB7_MY_PROTOCOL_H
 #define LAB7_MY_PROTOCOL_H
-const size_t BUFFERSIZE = 100;
+const size_t BUFFERSIZE = 1100;
 
 #include <WinSock2.h>
 #include <string>
+#include <memory>
+
+#include "packet.hpp"
 
 class MyProtocol
 {
@@ -32,13 +35,10 @@ public:
         return offset;
     }
 
-    static std::string recvMessage(SOCKET sendSock)
+    static char* recvMessage(SOCKET sendSock)
     {
-        int offset = 0;
-        int recved;
+        int offset = 0, recved;
         char msgSize[sizeof(int)];
-        char buffer[BUFFERSIZE];
-        std::string msg;
 
         auto dataleft = sizeof(u_long);//u_long: the return type of ntohl()
         while (dataleft > 0)
@@ -50,10 +50,11 @@ public:
 
         offset = 0;
         dataleft = ntohl(*(int*)(msgSize));
+        char *msg = new char[dataleft];
         while (dataleft > 0)
         {
             //接收数据
-            recved = recv(sendSock, buffer + offset, dataleft, NULL);
+            recved = recv(sendSock, msg + offset, dataleft, NULL);
             //msg += std::string(buffer + offset);
             if (recv == 0)
             {
@@ -63,7 +64,6 @@ public:
             dataleft -= recved;
         }
 
-        msg = buffer;
         return msg;
     }
 };

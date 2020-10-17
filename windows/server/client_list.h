@@ -34,7 +34,8 @@ private:
 public:
     static int addClient(SOCKET clntSock, SOCKADDR clntAddr);
     static int removeClient(size_t index);
-
+    static std::string getClientList();
+    static SOCKET getSock(size_t index) { return clientPool[index].getSock(); }
 };
 
 #endif
