@@ -15,15 +15,15 @@ int Client::start()
     while (!quit)
     {
         //input
-        DataPacket requestPacket;
         std::string inputStr;
+        int destiny;
+        char type;
         if (connected) std::cout << "(connected)";
         std::cout << "< ";
         std::getline(std::cin, inputStr);
 
         //input parse
-        requestPacket.type = parse(inputStr);
-        switch (requestPacket.type)
+        switch (type = parse(inputStr))
         {
         case 'c'://connect
             if (!connected)
@@ -39,8 +39,8 @@ int Client::start()
         case 'n'://name
         case 'l'://client list
             if (connected)
-                MyProtocol::sendMessage(servSock, requestPacket, sizeof(DataPacket));
-            else 
+                MyProtocol::sendPacket(servSock, DataPacket(type));
+            else
                 std::cout << "please connect to server!";
             break;
         case 's'://send msg to another client
@@ -49,15 +49,13 @@ int Client::start()
                 if (clientList.empty())
                 {
                     std::cout << "never get client before, now refreshing...";
-                    MyProtocol::sendMessage(servSock, DataPacket('l'), sizeof(DataPacket));
+                    MyProtocol::sendPacket(servSock, DataPacket('l'));
                 }
                 std::cout << "please input the client number";
-                std::cin >> requestPacket.destiny;
+                std::cin >> destiny;
                 std::cout << "please input content you want to send, and end with \';\'";
-                std::cin.getline(requestPacket.data, 1024, ';');
-
-                requestPacket.len = strlen(requestPacket.data) + 1;
-                MyProtocol::sendMessage(servSock, requestPacket, sizeof(DataPacket));
+                std::getline(std::cin, inputStr, ';');
+                MyProtocol::sendPacket(servSock, DataPacket('s', inputStr.c_str(), inputStr.size() + sizeof(char), -1, destiny));
             }
             else
                 std::cout << "please connect to server!";
@@ -66,7 +64,7 @@ int Client::start()
             quit = true;
             if (connected)
             {
-                MyProtocol::sendMessage(servSock, DataPacket('q'), sizeof(DataPacket));
+                MyProtocol::sendPacket(servSock, DataPacket('q'));
                 if (hThread)
                 {
                     WaitForSingleObject(hThread, INFINITE);
@@ -109,9 +107,9 @@ void Client::connectToServer()
     if (servSock)
     {
         //welcome
-        std::unique_ptr<DataPacket> welcomePacket = MyProtocol::recvMessage(servSock);
-        printMsg(*welcomePacket);
-        if (welcomePacket->type == 'q')//disconnect
+        DataPacket welcomePacket = MyProtocol::recvPacket(servSock);
+        printMsg(welcomePacket);
+        if (welcomePacket.type == 'q')//disconnect
         {
             closesocket(servSock);
             servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -128,16 +126,15 @@ void Client::connectToServer()
 
 DWORD WINAPI respondReceiver(LPVOID lpParameter)
 {
-    std::unique_ptr<DataPacket> respondPacket;
     PtrToRespondData pData = (PtrToRespondData)lpParameter;
     SOCKET servSock = pData->servSock;
 
     bool quit = false;
     while (!quit)
     {
-        respondPacket = MyProtocol::recvMessage(servSock);
-        Client::instance->printMsg(*respondPacket);
-        switch (respondPacket->type)
+        DataPacket respondPacket = MyProtocol::recvPacket(servSock);
+        Client::instance->printMsg(respondPacket);
+        switch (respondPacket.type)
         {
         case 'c':
         case 't':
@@ -148,7 +145,7 @@ DWORD WINAPI respondReceiver(LPVOID lpParameter)
             quit = true;
             break;
         case 'l':
-            Client::instance->refreshClientList(*respondPacket);
+            Client::instance->refreshClientList(respondPacket);
             break;
         }
     }
@@ -183,6 +180,7 @@ void Client::refreshClientList(DataPacket& clientListPacket)
         p = strtok(nullptr, ",");//port
         p = strtok(nullptr, ",");//num
     }
+    delete[] p;
 }
 
 Client::Client() :servSock(SOCKET()), connected(false)
@@ -197,7 +195,7 @@ Client::~Client()
 {
     if (servSock && instance)
     {
-        MyProtocol::sendMessage(servSock, DataPacket('q'), sizeof(DataPacket));
+        MyProtocol::sendPacket(servSock, DataPacket('q'));
         instance = nullptr;
     }
 }

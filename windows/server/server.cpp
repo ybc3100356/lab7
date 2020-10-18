@@ -41,8 +41,8 @@ int Server::serve()
         }
         else// the client pool is full
         {
-            std::string refuseStr("Sorry, there are too many users now! please connect later.");
-            MyProtocol::sendMessage(clntSock, DataPacket('q', refuseStr.c_str(), refuseStr.size() + sizeof(char)), sizeof(DataPacket));
+            char refuseStr[] = "Sorry, there are too many users now! please connect later.";
+            MyProtocol::sendPacket(clntSock, DataPacket('q', refuseStr, strlen(refuseStr) + sizeof(char)));
             closesocket(clntSock);
         }
     }
@@ -61,19 +61,21 @@ DWORD WINAPI requestReceiver(LPVOID lpParameter)
     SOCKET clntSock = pData->clntSock;
 
     //send hello message
-    std::string welcomeStr("Hello World!");
-    MyProtocol::sendMessage(clntSock, DataPacket('0', welcomeStr.c_str(), welcomeStr.size() + sizeof(char)), sizeof(DataPacket));
+    char welcomeStr[] = "Hello World!";
+    MyProtocol::sendPacket(clntSock, DataPacket('0', welcomeStr, strlen(welcomeStr) + sizeof(char)));
 
     bool quit = false;
     while (!quit)
     {
         //receive request from client
-        std::unique_ptr<DataPacket> requestPacket = MyProtocol::recvMessage(clntSock);
-        std::cout << "Message from client " << pData->index << ": type[" << requestPacket->type
-            << "], content[" << requestPacket->data << "]" << std::endl;
+        DataPacket requestPacket = MyProtocol::recvPacket(clntSock);
+        std::cout << "Message from client " << pData->index << ": type[" << requestPacket.type << "]";
+        if (requestPacket.len)
+            std::cout << ", content[" << requestPacket.data << "]";
+        std::cout << std::endl;
 
         //respond to client
-        quit = Server::instance->respond(*requestPacket, clntSock, pData->index);
+        quit = Server::instance->respond(requestPacket, clntSock, pData->index);
     }
 
     ClientList::removeClient(pData->index);
@@ -95,25 +97,24 @@ int Server::respond(DataPacket& requestPacket, SOCKET clntSock, size_t index)
     std::string timeStr = currentDateTime();
     std::string str;
 
-    DataPacket respondPacket('r');
     switch (requestPacket.type)
     {
     case    't':
-        MyProtocol::sendMessage(clntSock, DataPacket('t', timeStr.c_str(), timeStr.size() + sizeof(char)), sizeof(DataPacket));
+        MyProtocol::sendPacket(clntSock, DataPacket('t', timeStr.c_str(), timeStr.size() + sizeof(char)));
         break;
     case    'n':
-        MyProtocol::sendMessage(clntSock, DataPacket('n', getName().c_str(), getName().size() + sizeof(char)), sizeof(DataPacket));
+        MyProtocol::sendPacket(clntSock, DataPacket('n', getName().c_str(), getName().size() + sizeof(char)));
         break;
     case    'l':
         str = ClientList::getClientList();
-        MyProtocol::sendMessage(clntSock, DataPacket('l', str.c_str(), str.size() + sizeof(char)), sizeof(DataPacket));
+        MyProtocol::sendPacket(clntSock, DataPacket('l', str.c_str(), str.size() + sizeof(char)));
         break;
     case    's':
         requestPacket.source = index;
-        MyProtocol::sendMessage(ClientList::getSock(requestPacket.destiny), requestPacket, sizeof(DataPacket));
+        MyProtocol::sendPacket(ClientList::getSock(requestPacket.destiny), std::move(requestPacket));
         break;
     case    'q':
-        MyProtocol::sendMessage(clntSock, DataPacket('q'), sizeof(DataPacket));
+        MyProtocol::sendPacket(clntSock, DataPacket('q'));
         return 1;
     default:
         break;

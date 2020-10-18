@@ -4,29 +4,38 @@
 #include <string>
 
 class DataPacket {
-    static const size_t MESSAGE_SIZE = 1024;
 public:
     char type;
-    size_t len;
-    char data[MESSAGE_SIZE] = { 0 };
     int source;   // for send messgae to another client
     int destiny;  // for send messgae to another client
-    DataPacket(char _type = '0', const char* _msg = nullptr, size_t _len = 0, int _source = -1, int _destiny = -1) :type(_type), len(_len), source(_source), destiny(_destiny)
+    size_t len;
+    char* data;
+
+    DataPacket(char _type = '0', const char* _msg = nullptr, size_t _len = 0, int _source = -1, int _destiny = -1) :
+        type(_type), len(_len), source(_source), destiny(_destiny)
     {
-        memcpy(data, _msg, len);
+        if (len)
+        {
+            data = new char[len];
+            memcpy(data, _msg, len);
+        }
+        else
+            data = nullptr;
     }
 
     DataPacket(const DataPacket& p) : type(p.type), len(p.len), source(p.source), destiny(p.destiny)
     {
+        delete[] data;
         memcpy(data, p.data, len);
     }
 
-    ~DataPacket() {}
+    ~DataPacket() { delete[] data; }
 
     DataPacket& operator=(const DataPacket& rhs)
     {
         if (this != &rhs)
         {
+            delete[] data;
             memcpy(data, rhs.data, len);
             len = rhs.len;
             type = rhs.type;
