@@ -1,6 +1,5 @@
 #ifndef LAB7_MY_PROTOCOL_H
 #define LAB7_MY_PROTOCOL_H
-const size_t BUFFERSIZE = 1100;
 
 #include <WinSock2.h>
 #include <string>
@@ -11,8 +10,9 @@ const size_t BUFFERSIZE = 1100;
 class MyProtocol
 {
 public:
-    static int sendMessage(SOCKET recvSock, const char* message, size_t len)
+    static int sendMessage(SOCKET recvSock, const DataPacket& packet, size_t len)
     {
+        char* message = (char*)&packet;
         int sent = 0, offset = 0;
         auto msgSize = htonl(len);
         auto dataleft = sizeof(msgSize);
@@ -35,7 +35,7 @@ public:
         return offset;
     }
 
-    static char* recvMessage(SOCKET sendSock)
+    static std::unique_ptr<DataPacket> recvMessage(SOCKET sendSock)
     {
         int offset = 0, recved;
         char msgSize[sizeof(int)];
@@ -55,7 +55,6 @@ public:
         {
             //接收数据
             recved = recv(sendSock, msg + offset, dataleft, NULL);
-            //msg += std::string(buffer + offset);
             if (recv == 0)
             {
                 break;
@@ -64,7 +63,7 @@ public:
             dataleft -= recved;
         }
 
-        return msg;
+        return std::make_unique<DataPacket>(*(DataPacket*)msg);
     }
 };
 

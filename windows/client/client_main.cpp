@@ -12,15 +12,20 @@ void AtExitFunc()
 int main()
 {
     WSADATA wsaData;
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) == 0)
+    {
+        atexit(AtExitFunc);
 
-    atexit(AtExitFunc);
+        Client client;
+        int ret = client.start();
 
-    Client client;
-    int ret = client.start();
-
-    WSACleanup();
-
-    system("pause");
-    return ret;
+        WSACleanup();
+        system("pause");
+        return ret;
+    }
+    else
+    {
+        std::cout << "WSAStartup wrong!" << std::endl;
+        return 0;
+    }
 }

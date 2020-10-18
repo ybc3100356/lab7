@@ -3,86 +3,77 @@
 #include "../protocol/my_protocol.hpp"
 #pragma warning(disable : 4996)
 
+Server* Server::instance = nullptr;
+
 int Server::serve()
 {
-    //创建套接字
+    //create socket
     SOCKET servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    //绑定套接字
+    //bind socket
     sockaddr_in sockAddr;
     memset(&sockAddr, 0, sizeof(sockAddr));
     sockAddr.sin_family = PF_INET;
-    //sockAddr.sin_addr.S_un.S_addr = inet_addr("192.168.1.159");
-    //sockAddr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
     sockAddr.sin_addr.S_un.S_addr = inet_addr("0.0.0.0");
     sockAddr.sin_port = htons(1730);
     bind(servSock, (SOCKADDR*)&sockAddr, sizeof(SOCKADDR));
 
-    //监听
     listen(servSock, ClientList::MAXUSERNUM);
 
-    //接受客户端请求
+    //accept connection of client
     SOCKADDR clntAddr;
     int nSize = sizeof(SOCKADDR);
-    HANDLE hThreadArray[ClientList::MAXUSERNUM];
+    HANDLE hThreadArray[ClientList::MAXUSERNUM] = { 0 };
     while (1)
     {
         SOCKET clntSock = accept(servSock, (SOCKADDR*)&clntAddr, &nSize);
-        //收到客户端的连接，创建子线程处理消息
         if (INVALID_SOCKET == clntSock)
         {
             printf("socket Failed\n");
             continue;
         }
+        //accept success, add client to client pool and create thread to receive request 
         int clientIndex = ClientList::addClient(clntSock, clntAddr);
         if (clientIndex >= 0)
         {
-            PMYDATA pData = new MYDATA(clntSock, (size_t)clientIndex, this);
-            hThreadArray[clientIndex] = CreateThread(NULL, 0, clientFunc, pData, 0, NULL);
+            if (hThreadArray[clientIndex])
+                CloseHandle(hThreadArray[clientIndex]);
+            hThreadArray[clientIndex] = CreateThread(nullptr, 0, requestReceiver, &RespondData(clntSock, (size_t)clientIndex, this), 0, nullptr);
         }
-        else
+        else// the client pool is full
         {
-            const char* welcomeStr = "Sorry, there are too many users now! please connect later.";
-            DataPacket welcomePacket('0', welcomeStr, strlen(welcomeStr) + sizeof(char));
-            MyProtocol::sendMessage(clntSock, (char*)(&welcomePacket), sizeof(DataPacket));
+            std::string refuseStr("Sorry, there are too many users now! please connect later.");
+            MyProtocol::sendMessage(clntSock, DataPacket('q', refuseStr.c_str(), refuseStr.size() + sizeof(char)), sizeof(DataPacket));
             closesocket(clntSock);
         }
     }
     WaitForMultipleObjects(ClientList::MAXUSERNUM, hThreadArray, TRUE, INFINITE);
     for (size_t i = 0; i < ClientList::MAXUSERNUM; i++)
-    {
         CloseHandle(hThreadArray[i]);
-    }
-    // CloseHandle(hThreadArray[i]);
     closesocket(servSock);
+
+    instance = nullptr;
     return 0;
 }
 
-DWORD WINAPI clientFunc(LPVOID lpParameter)
+DWORD WINAPI requestReceiver(LPVOID lpParameter)
 {
-    PMYDATA pData = (PMYDATA)lpParameter;
+    PtrToRespondData pData = (PtrToRespondData)lpParameter;
     SOCKET clntSock = pData->clntSock;
-    Server* server = pData->server;
 
-    //向客户端发送数据
-    const char* welcomeStr = "Hello World!";
-    DataPacket welcomePacket('0', welcomeStr, strlen(welcomeStr) + sizeof(char));
-    MyProtocol::sendMessage(clntSock, (char*)(&welcomePacket), sizeof(DataPacket));
+    //send hello message
+    std::string welcomeStr("Hello World!");
+    MyProtocol::sendMessage(clntSock, DataPacket('0', welcomeStr.c_str(), welcomeStr.size() + sizeof(char)), sizeof(DataPacket));
 
-    while (1)
+    bool quit = false;
+    while (!quit)
     {
-        //TODO: quit when client quit without informing server
-
-        //接受客户端数据
-        DataPacket* requestPacket = (DataPacket*)MyProtocol::recvMessage(clntSock);
-
-        //输出收到的数据
-        std::cout << "Message from client: type[" << requestPacket->type
+        //receive request from client
+        std::unique_ptr<DataPacket> requestPacket = MyProtocol::recvMessage(clntSock);
+        std::cout << "Message from client " << pData->index << ": type[" << requestPacket->type
             << "], content[" << requestPacket->data << "]" << std::endl;
 
-        //根据请求作出回应
-        if (server->respond(requestPacket, clntSock, pData->index) == 1)
-            break;//return value == 1: quit
-        delete (char*)requestPacket;
+        //respond to client
+        quit = Server::instance->respond(*requestPacket, clntSock, pData->index);
     }
 
     ClientList::removeClient(pData->index);
@@ -90,40 +81,53 @@ DWORD WINAPI clientFunc(LPVOID lpParameter)
     return 0;
 }
 
-int Server::respond(DataPacket* requestPacket, SOCKET clntSock, size_t index)
+const std::string currentDateTime() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+    return buf;
+}
+
+int Server::respond(DataPacket& requestPacket, SOCKET clntSock, size_t index)
 {
-    time_t _tm = time(NULL);
-    struct tm* curtime = localtime(&_tm);
-    const char* timeStr = asctime(curtime);
+    std::string timeStr = currentDateTime();
     std::string str;
 
     DataPacket respondPacket('r');
-    switch (requestPacket->type)
+    switch (requestPacket.type)
     {
     case    't':
-        memcpy(respondPacket.data, timeStr, strlen(timeStr) + sizeof(char));
-        respondPacket.len = strlen(timeStr) + sizeof(char);
-        MyProtocol::sendMessage(clntSock, (char*)(&respondPacket), sizeof(DataPacket));
+        MyProtocol::sendMessage(clntSock, DataPacket('t', timeStr.c_str(), timeStr.size() + sizeof(char)), sizeof(DataPacket));
         break;
     case    'n':
-        memcpy(respondPacket.data, getName().c_str(), getName().size() + sizeof(char));
-        respondPacket.len = getName().size() + sizeof(char);
-        MyProtocol::sendMessage(clntSock, (char*)(&respondPacket), sizeof(DataPacket));
+        MyProtocol::sendMessage(clntSock, DataPacket('n', getName().c_str(), getName().size() + sizeof(char)), sizeof(DataPacket));
         break;
     case    'l':
         str = ClientList::getClientList();
-        memcpy(respondPacket.data, str.c_str(), str.size() + sizeof(char));
-        respondPacket.len = str.size() + sizeof(char);
-        MyProtocol::sendMessage(clntSock, (char*)(&respondPacket), sizeof(DataPacket));
+        MyProtocol::sendMessage(clntSock, DataPacket('l', str.c_str(), str.size() + sizeof(char)), sizeof(DataPacket));
         break;
     case    's':
-        respondPacket.source = index;
-        MyProtocol::sendMessage(ClientList::getSock(requestPacket->destiny), (char*)requestPacket, sizeof(DataPacket));
+        requestPacket.source = index;
+        MyProtocol::sendMessage(ClientList::getSock(requestPacket.destiny), requestPacket, sizeof(DataPacket));
         break;
     case    'q':
+        MyProtocol::sendMessage(clntSock, DataPacket('q'), sizeof(DataPacket));
         return 1;
     default:
         break;
     }
     return 0;
+}
+
+Server::Server(std::string _name) : name(_name)
+{
+    if (instance == nullptr)
+        instance = this;
+}
+
+Server::~Server()
+{
+    instance = nullptr;
 }

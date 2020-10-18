@@ -6,28 +6,32 @@
 #include <iostream>
 #include <string>
 #include <ctime>    
+#include <chrono>
 
 #include "../protocol/packet.hpp"
 
 class Server {
     std::string name;
 public:
-    Server(std::string _name) :name(_name) {}
-    ~Server() {}
+    static Server* instance;
+
+    Server(std::string _name); 
+    ~Server();
     int serve();
-    int respond(DataPacket *request, SOCKET clntSock, size_t index);
+    int respond(DataPacket& request, SOCKET clntSock, size_t index);
     std::string getName() { return name; }
+    friend DWORD WINAPI requestReceiver(LPVOID lpParameter);
 };
 
-typedef struct MyData
+typedef struct _respondData
 {
     SOCKET clntSock;
     size_t index;
     Server* server;
-    MyData(SOCKET _clntSock, size_t _index, Server* _server) : clntSock(_clntSock), index(_index), server(_server) {}
-    ~MyData() {}
-} MYDATA, * PMYDATA;
+    _respondData(SOCKET _clntSock, size_t _index, Server* _server) : clntSock(_clntSock), index(_index), server(_server) {}
+    ~_respondData() {}
+} RespondData, * PtrToRespondData;
 
-DWORD WINAPI clientFunc(LPVOID lpParameter);
+DWORD WINAPI requestReceiver(LPVOID lpParameter);
 
 #endif

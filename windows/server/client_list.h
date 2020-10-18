@@ -21,13 +21,13 @@ class ClientList
 
         bool isConnected() { return connected; }
         void setConnected(bool _connected) { connected = _connected; }
-        Client() : connected(false) {}
+        Client() : clntSock(), connected(false), clntAddr() {}
         Client(SOCKET _clntSock, SOCKADDR _clntAddr) : clntSock(_clntSock), clntAddr(_clntAddr), connected(false) {};
         ~Client() {};
     };
 
 public:
-    static const size_t MAXUSERNUM = 2;
+    static const size_t MAXUSERNUM = 20;
 private:
     static Client clientPool[MAXUSERNUM];
 

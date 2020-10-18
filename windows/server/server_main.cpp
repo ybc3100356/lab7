@@ -5,12 +5,16 @@
 int main()
 {
     WSADATA wsaData;
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-    Server* server = new Server("S E R V E R");
-    int ret = server->serve();
-
-    delete server;
-    WSACleanup();
-    return ret;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) == 0)
+    {
+        Server server("S E R V E R");
+        int ret = server.serve();
+        WSACleanup();
+        return ret;
+    }
+    else
+    {
+        std::cout << "WSAStartup wrong!" << std::endl;
+        return 0;
+    }
 }

@@ -3,16 +3,6 @@
 
 #include <string>
 
-enum class RequestType
-{
-    NONE_TYPE,//0
-    GET_TIME,//t
-    GET_NAME,//n
-    GET_CLIENT_LIST,//l
-    SEND_MSG,//s
-    QUIT//q
-};
-
 class DataPacket {
     static const size_t MESSAGE_SIZE = 1024;
 public:
