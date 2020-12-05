@@ -51,10 +51,10 @@ int Client::start()
                     std::cout << "never get client before, now refreshing...";
                     MyProtocol::sendPacket(servSock, DataPacket('l'));
                 }
-                std::cout << "please input the client number";
-                std::cin >> destiny;
-                std::cout << "please input content you want to send, and end with \';\'";
-                std::getline(std::cin, inputStr, ';');
+                std::cout << "please input the client number: ";
+                (std::cin >> destiny).get();
+                std::cout << "please input content you want to send below, ending with LF" << std::endl;
+                std::getline(std::cin, inputStr);
                 MyProtocol::sendPacket(servSock, DataPacket('s', inputStr.c_str(), inputStr.size() + sizeof(char), -1, destiny));
             }
             else
@@ -93,7 +93,7 @@ void Client::connectToServer()
 
     std::cout << "please input the server IP address" << std::endl;
     std::string IPaddr;
-    std::cin >> IPaddr;
+    (std::cin >> IPaddr).get();
     sockAddr.sin_addr.S_un.S_addr = inet_addr(IPaddr.c_str());
     if (sockAddr.sin_addr.S_un.S_addr == INADDR_NONE || sockAddr.sin_addr.S_un.S_addr == INADDR_ANY) {
         std::cout << "invalid IP addr!" << std::endl;
@@ -133,7 +133,11 @@ DWORD WINAPI respondReceiver(LPVOID lpParameter)
     while (!quit)
     {
         DataPacket respondPacket = MyProtocol::recvPacket(servSock);
-        Client::instance->printMsg(respondPacket);
+		//TODO Msg from server when no data
+		if (respondPacket.data)
+		{
+			Client::instance->printMsg(respondPacket);
+		}
         switch (respondPacket.type)
         {
         case 'c':
@@ -162,6 +166,11 @@ char Client::parse(std::string inputStr)
 
 void Client::printMsg(const DataPacket& msg)
 {
+	/*TODO
+	(connected)< (incoming msg)
+	> message from server: S E R V E R
+	(connected)<
+	*/
     std::cout << "\n> message from ";
     if (msg.source == -1)
         std::cout << "server";
