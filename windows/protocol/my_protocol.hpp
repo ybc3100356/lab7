@@ -29,6 +29,7 @@ class MyProtocol
         while (dataleft > 0)
         {
             sent = recv(sendSock, buf + offset, dataleft, NULL);
+			//? typo
             if (recv == 0)
                 break;
             offset += sent;
