@@ -14,7 +14,8 @@ class Client
 {
     bool connected;
     SOCKET servSock;
-    std::vector<int> clientList;
+    std::vector<int> clientList; //todo kinda redundant; just empty or not
+
 public:
     Client();
     ~Client();

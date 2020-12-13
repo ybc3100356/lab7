@@ -1,9 +1,12 @@
+#include <memory>
 #include "client.h"
 #include "../protocol/my_protocol.hpp"
+#include "msg_queue.hpp"
 
 #pragma warning(disable:4996)
 
 Client* Client::instance = nullptr;
+msg_queue<std::unique_ptr<DataPacket>> mq;
 
 int Client::start()
 {
@@ -38,8 +41,10 @@ int Client::start()
         case 't'://time
         case 'n'://name
         case 'l'://client list
-            if (connected)
+			if (connected)
+			{
                 MyProtocol::sendPacket(servSock, DataPacket(type));
+			}
             else
                 std::cout << "please connect to server!";
             break;
@@ -132,26 +137,26 @@ DWORD WINAPI respondReceiver(LPVOID lpParameter)
     bool quit = false;
     while (!quit)
     {
-        DataPacket respondPacket = MyProtocol::recvPacket(servSock);
+		DataPacket respondPacket = MyProtocol::recvPacket(servSock);
 		//TODO Msg from server when no data
 		if (respondPacket.data)
 		{
 			Client::instance->printMsg(respondPacket);
 		}
-        switch (respondPacket.type)
-        {
-        case 'c':
-        case 't':
-        case 'n':
-        case 's':
-            break;
-        case 'q':
-            quit = true;
-            break;
-        case 'l':
-            Client::instance->refreshClientList(respondPacket);
-            break;
-        }
+		switch (respondPacket.type)
+		{
+		case 'c':
+		case 't':
+		case 'n':
+		case 's':
+			break;
+		case 'q':
+			quit = true;
+			break;
+		case 'l':
+			Client::instance->refreshClientList(respondPacket);
+			break;
+		}
     }
     return 0;
 }
@@ -167,9 +172,9 @@ char Client::parse(std::string inputStr)
 void Client::printMsg(const DataPacket& msg)
 {
 	/*TODO
-	(connected)< (incoming msg)
+	(connected)< bla(interrupted by incoming msg)
 	> message from server: S E R V E R
-	(connected)<
+	(connected)< bla
 	*/
     std::cout << "\n> message from ";
     if (msg.source == -1)
@@ -187,7 +192,7 @@ void Client::refreshClientList(DataPacket& clientListPacket)
         clientList.push_back(std::stoi(p + 7));//num
         p = strtok(nullptr, ",");//addr
         p = strtok(nullptr, ",");//port
-        p = strtok(nullptr, ",");//num
+        p = strtok(nullptr, ",");//next num
     }
     delete[] p;
 }
