@@ -17,6 +17,8 @@ int Client::start()
     HANDLE hThread = nullptr;
     while (!quit)
     {
+        //TODO: client menu
+
         //input
         std::string inputStr;
         int destiny;
@@ -33,7 +35,10 @@ int Client::start()
             {
                 connectToServer();
                 if (connected)
-                    hThread = CreateThread(NULL, 0, respondReceiver, &RespondData(servSock), 0, NULL);
+                {
+                    PtrToRespondData pData = new RespondData(servSock);
+                    hThread = CreateThread(NULL, 0, respondReceiver, pData, 0, NULL);
+                }
             }
             else
                 std::cout << "already connect to server!";
@@ -41,10 +46,10 @@ int Client::start()
         case 't'://time
         case 'n'://name
         case 'l'://client list
-			if (connected)
-			{
+            if (connected)
+            {
                 MyProtocol::sendPacket(servSock, DataPacket(type));
-			}
+            }
             else
                 std::cout << "please connect to server!";
             break;
@@ -81,7 +86,7 @@ int Client::start()
             std::cout << "bye!";
             break;
         default:
-            std::cout << "unknown input!";
+            std::cout << "unknown input:" << inputStr;
             break;
         }
         std::cout << std::endl;
@@ -133,30 +138,31 @@ DWORD WINAPI respondReceiver(LPVOID lpParameter)
 {
     PtrToRespondData pData = (PtrToRespondData)lpParameter;
     SOCKET servSock = pData->servSock;
+    delete pData;
 
     bool quit = false;
     while (!quit)
     {
-		DataPacket respondPacket = MyProtocol::recvPacket(servSock);
-		//TODO Msg from server when no data
-		if (respondPacket.data)
-		{
-			Client::instance->printMsg(respondPacket);
-		}
-		switch (respondPacket.type)
-		{
-		case 'c':
-		case 't':
-		case 'n':
-		case 's':
-			break;
-		case 'q':
-			quit = true;
-			break;
-		case 'l':
-			Client::instance->refreshClientList(respondPacket);
-			break;
-		}
+        DataPacket respondPacket = MyProtocol::recvPacket(servSock);
+        //TODO Msg from server when no data
+        if (respondPacket.data)
+        {
+            Client::instance->printMsg(respondPacket);
+        }
+        switch (respondPacket.type)
+        {
+        case 'c':
+        case 't':
+        case 'n':
+        case 's':
+            break;
+        case 'q':
+            quit = true;
+            break;
+        case 'l':
+            Client::instance->refreshClientList(respondPacket);
+            break;
+        }
     }
     return 0;
 }
@@ -171,11 +177,11 @@ char Client::parse(std::string inputStr)
 
 void Client::printMsg(const DataPacket& msg)
 {
-	/*TODO
-	(connected)< bla(interrupted by incoming msg)
-	> message from server: S E R V E R
-	(connected)< bla
-	*/
+    /*TODO
+    (connected)< bla(interrupted by incoming msg)
+    > message from server: S E R V E R
+    (connected)< bla
+    */
     std::cout << "\n> message from ";
     if (msg.source == -1)
         std::cout << "server";

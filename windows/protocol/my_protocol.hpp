@@ -25,15 +25,12 @@ class MyProtocol
     static void recvChar(SOCKET sendSock, char* buf, size_t len)
     {
         size_t dataleft = len;
-        int sent = 0, offset = 0;
+        int received = 0, offset = 0;
         while (dataleft > 0)
         {
-            sent = recv(sendSock, buf + offset, dataleft, NULL);
-			//? typo
-            if (recv == 0)
-                break;
-            offset += sent;
-            dataleft -= sent;
+            received = recv(sendSock, buf + offset, dataleft, NULL);
+            offset += received;
+            dataleft -= received;
         }
     }
 

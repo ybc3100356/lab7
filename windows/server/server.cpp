@@ -19,6 +19,16 @@ int Server::serve()
 
     listen(servSock, ClientList::MAXUSERNUM);
 
+    // get host name
+    char hostname[256];
+    if (gethostname(hostname, sizeof(hostname)) == SOCKET_ERROR)
+    {
+        std::cout << "cannot get the local host name" << std::endl;
+        return -1;
+    }
+    name = hostname;
+    std::cout << "local host name:" << name << std::endl;
+
     //accept connection of client
     SOCKADDR clntAddr;
     int nSize = sizeof(SOCKADDR);
@@ -37,7 +47,8 @@ int Server::serve()
         {
             if (hThreadArray[clientIndex])
                 CloseHandle(hThreadArray[clientIndex]);
-            hThreadArray[clientIndex] = CreateThread(nullptr, 0, requestReceiver, &RespondData(clntSock, (size_t)clientIndex, this), 0, nullptr);
+            PtrToRespondData pData = new RespondData(clntSock, (size_t)clientIndex, this);
+            hThreadArray[clientIndex] = CreateThread(nullptr, 0, requestReceiver, pData, 0, nullptr);
         }
         else// the client pool is full
         {
@@ -59,6 +70,8 @@ DWORD WINAPI requestReceiver(LPVOID lpParameter)
 {
     PtrToRespondData pData = (PtrToRespondData)lpParameter;
     SOCKET clntSock = pData->clntSock;
+    size_t index = pData->index;
+    delete pData;
 
     //send hello message
     char welcomeStr[] = "Hello World!";
@@ -69,16 +82,16 @@ DWORD WINAPI requestReceiver(LPVOID lpParameter)
     {
         //receive request from client
         DataPacket requestPacket = MyProtocol::recvPacket(clntSock);
-        std::cout << "Message from client " << pData->index << ": type[" << requestPacket.type << "]";
+        std::cout << "Message from client " << index << ": type[" << requestPacket.type << "]";
         if (requestPacket.len)
             std::cout << ", content[" << requestPacket.data << "]";
         std::cout << std::endl;
 
         //respond to client
-        quit = Server::instance->respond(requestPacket, clntSock, pData->index);
+        quit = Server::instance->respond(requestPacket, clntSock, index);
     }
 
-    ClientList::removeClient(pData->index);
+    ClientList::removeClient(index);
     closesocket(clntSock);
     return 0;
 }
@@ -122,7 +135,7 @@ int Server::respond(DataPacket& requestPacket, SOCKET clntSock, size_t index)
     return 0;
 }
 
-Server::Server(std::string _name) : name(_name)
+Server::Server()
 {
     if (instance == nullptr)
         instance = this;

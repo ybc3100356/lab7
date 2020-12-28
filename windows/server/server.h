@@ -15,7 +15,7 @@ class Server {
 public:
     static Server* instance;
 
-    Server(std::string _name); 
+    Server(); 
     ~Server();
     int serve();
     int respond(DataPacket& request, SOCKET clntSock, size_t index);
