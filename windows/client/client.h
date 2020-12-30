@@ -10,6 +10,16 @@
 
 #include "../protocol/packet.hpp"
 
+constexpr auto menu =
+"Client Menu (Key)\n\
+c: connect to a server\n\
+t: ask server for time\n\
+n: ask server for its name\n\
+l: ask server for client list\n\
+s: send message to another client\n\
+q: quit the app\n\
+";
+
 class Client
 {
     bool connected;

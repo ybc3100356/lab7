@@ -9,3 +9,4 @@ Debug/
 .vs
 *.vcxproj
 *.vcxproj.*
+*.gitattributes

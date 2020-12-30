@@ -15,10 +15,9 @@ int Client::start()
 
     bool quit = false;
     HANDLE hThread = nullptr;
+	std::cout << menu;
     while (!quit)
     {
-        //TODO: client menu
-
         //input
         std::string inputStr;
         int destiny;
@@ -86,7 +85,8 @@ int Client::start()
             std::cout << "bye!";
             break;
         default:
-            std::cout << "unknown input:" << inputStr;
+            std::cout << "unknown input:" << inputStr << std::endl;
+			std::cout << menu;
             break;
         }
         std::cout << std::endl;
