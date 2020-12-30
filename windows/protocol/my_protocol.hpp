@@ -1,9 +1,11 @@
 #ifndef LAB7_MY_PROTOCOL_H
 #define LAB7_MY_PROTOCOL_H
 
-#include <WinSock2.h>
-#include <string>
 #include <memory>
+#include <numeric>
+#include <string>
+
+#include <WinSock2.h>
 
 #include "packet.hpp"
 
@@ -37,16 +39,21 @@ class MyProtocol
 public:
     static int sendPacket(SOCKET recvSock, const DataPacket&& packet)
     {
-        int offset = 0;
         u_long dataSize = htonl(packet.len);
 
-        // sent the size, type, source, destiny, data
-        offset += sendChar(recvSock, (char*)&dataSize, sizeof(dataSize));
-        offset += sendChar(recvSock, &packet.type, sizeof(packet.type));
-        offset += sendChar(recvSock, (char*)&packet.source, sizeof(packet.source));
-        offset += sendChar(recvSock, (char*)&packet.destiny, sizeof(packet.destiny));
-        offset += sendChar(recvSock, packet.data, packet.len);
+		// sent the size, type, source, destiny, data
+		const size_t lens[] = { sizeof(dataSize), sizeof(packet.type), sizeof(packet.source), sizeof(packet.destiny), packet.len };
+		auto tsdu_len = std::accumulate(lens, lens + sizeof(lens)/sizeof(lens[0]), 0U);
+		auto tsdu = std::make_unique<char[]>(tsdu_len);
+		auto offset = 0, i = 0;
+		std::memcpy(&tsdu[offset], &dataSize, lens[i]); offset += lens[i]; i++;
+		std::memcpy(&tsdu[offset], &packet.type, lens[i]); offset += lens[i]; i++;
+		std::memcpy(&tsdu[offset], &packet.source, lens[i]); offset += lens[i]; i++;
+		std::memcpy(&tsdu[offset], &packet.destiny, lens[i]); offset += lens[i]; i++;
+		std::memcpy(&tsdu[offset], packet.data, lens[i]); offset += lens[i]; i++;
 
+        // sent assembled TSDU
+        offset = sendChar(recvSock, tsdu.get(), tsdu_len);
         return offset;
     }
 
