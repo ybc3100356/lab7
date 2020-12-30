@@ -37,10 +37,10 @@ std::string ClientList::getClientList()
         if (clientPool[i].isConnected())
         {
             //±àºÅ¡¢IPµØÖ·¡¢¶Ë¿Ú
-            sockaddr_in* addr_in = (sockaddr_in*)(&clientPool[i].getAddr());
+            auto addr_in = reinterpret_cast<sockaddr_in *>(&clientPool[i].getAddr());
             std::string number = std::to_string(i);
             std::string addr = inet_ntoa(addr_in->sin_addr);
-            std::string port = std::to_string(addr_in->sin_port);
+            std::string port = std::to_string(ntohs(addr_in->sin_port));
 
             clientListStr += "number: " + number + ", addr: " + addr + ", port:" + port + "\n";
         }
