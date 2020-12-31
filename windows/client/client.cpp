@@ -10,12 +10,9 @@ msg_queue<std::unique_ptr<DataPacket>> mq;
 
 int Client::start()
 {
-    //create socket
-    servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
     bool quit = false;
     HANDLE hThread = nullptr;
-	std::cout << menu;
+    std::cout << menu;
     while (!quit)
     {
         //input
@@ -71,6 +68,7 @@ int Client::start()
             break;
         case 'q'://quit
             quit = true;
+        case 'd'://disconnect
             if (connected)
             {
                 MyProtocol::sendPacket(servSock, DataPacket('q'));
@@ -86,7 +84,7 @@ int Client::start()
             break;
         default:
             std::cout << "unknown input:" << inputStr << std::endl;
-			std::cout << menu;
+            std::cout << menu;
             break;
         }
         std::cout << std::endl;
@@ -99,8 +97,10 @@ int Client::start()
 
 void Client::connectToServer()
 {
+    //create socket
+    servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    
     sockaddr_in sockAddr = { 0 };
-
     std::cout << "please input the server IP address" << std::endl;
     std::string IPaddr;
     (std::cin >> IPaddr).get();
@@ -169,7 +169,7 @@ DWORD WINAPI respondReceiver(LPVOID lpParameter)
 
 char Client::parse(std::string inputStr)
 {
-    if (inputStr[0] == 'c' || inputStr[0] == 'q' || inputStr[0] == 'n' || inputStr[0] == 't' || inputStr[0] == 'l' || inputStr[0] == 's')
+    if (inputStr[0] == 'c' || inputStr[0] == 'q' || inputStr[0] == 'n' || inputStr[0] == 't' || inputStr[0] == 'l' || inputStr[0] == 's' || inputStr[0] == 'd')
         return inputStr[0];
     else
         return '0';

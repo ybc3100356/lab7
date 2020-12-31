@@ -17,6 +17,7 @@ t: ask server for time\n\
 n: ask server for its name\n\
 l: ask server for client list\n\
 s: send message to another client\n\
+d: disconnect from the server\n\
 q: quit the app\n\
 ";
 
